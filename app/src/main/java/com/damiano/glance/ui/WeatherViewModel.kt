@@ -12,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -41,23 +42,25 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         viewModelScope.launch {
-            repository.refreshIntervalFlow.collect { interval ->
-                val currentState = _state.value
-                if (currentState is WeatherUiState.Success) {
-                    _state.value = currentState.copy(refreshInterval = interval)
-                }
-                startPeriodicRefresh(interval)
-            }
-        }
-        viewModelScope.launch {
-            repository.firstLaunchFlow.collect { isFirst ->
-                val currentState = _state.value
-                if (currentState is WeatherUiState.Success) {
-                    _state.value = currentState.copy(showWelcome = isFirst)
+            launch {
+                repository.refreshIntervalFlow.collect { interval ->
+                    val currentState = _state.value
+                    if (currentState is WeatherUiState.Success) {
+                        _state.value = currentState.copy(refreshInterval = interval)
+                    }
+                    startPeriodicRefresh(interval)
                 }
             }
+            launch {
+                repository.firstLaunchFlow.collect { isFirst ->
+                    val currentState = _state.value
+                    if (currentState is WeatherUiState.Success) {
+                        _state.value = currentState.copy(showWelcome = isFirst)
+                    }
+                }
+            }
+            refresh()
         }
-        refresh()
     }
 
     private fun startPeriodicRefresh(intervalMinutes: Long) {
@@ -73,8 +76,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     fun refresh() {
         viewModelScope.launch {
             val currentState = _state.value
-            val currentInterval = if (currentState is WeatherUiState.Success) currentState.refreshInterval else 30L
-            val currentWelcome = if (currentState is WeatherUiState.Success) currentState.showWelcome else false
+            val currentInterval = if (currentState is WeatherUiState.Success) currentState.refreshInterval else try { repository.refreshIntervalFlow.first() } catch (_: Exception) { 30L }
+            val currentWelcome = if (currentState is WeatherUiState.Success) currentState.showWelcome else try { repository.firstLaunchFlow.first() } catch (_: Exception) { true }
+
             if (currentState !is WeatherUiState.Success) {
                 _state.value = WeatherUiState.Loading
             }

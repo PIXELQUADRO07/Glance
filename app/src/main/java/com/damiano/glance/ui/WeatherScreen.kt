@@ -3,7 +3,6 @@ package com.damiano.glance.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -537,23 +536,18 @@ fun ForecastCard(day: DailyWeather) {
 
 @Composable
 fun TvButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    var isFocused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(targetValue = if (isFocused) 1.05f else 1.0f)
-    val backgroundColor = if (isFocused) Color(0xFF98CCFD) else Color(0x33FFFFFF)
-    val textColor = if (isFocused) Color(0xFF101418) else Color.White
-
-    Box(
-        modifier = modifier
-            .scale(scale)
-            .clip(RoundedCornerShape(12.dp))
-            .background(backgroundColor)
-            .focusable()
-            .onFocusChanged { isFocused = it.isFocused }
-            .then(Modifier.clickable(onClick = onClick))
-            .padding(horizontal = 24.dp, vertical = 14.dp),
-        contentAlignment = Alignment.Center
+    androidx.tv.material3.Button(
+        onClick = onClick,
+        modifier = modifier,
+        colors = androidx.tv.material3.ButtonDefaults.colors(
+            containerColor = Color(0x33FFFFFF),
+            focusedContainerColor = Color(0xFF98CCFD),
+            contentColor = Color.White,
+            focusedContentColor = Color(0xFF101418)
+        ),
+        shape = androidx.tv.material3.ButtonDefaults.shape(RoundedCornerShape(12.dp))
     ) {
-        Text(text = text, color = textColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(text = text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
     }
 }
 
