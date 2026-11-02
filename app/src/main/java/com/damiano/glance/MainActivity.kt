@@ -28,7 +28,11 @@ class MainActivity : ComponentActivity() {
                     onSelectCity = { city ->
                         viewModel.selectCity(city)
                         viewModel.setShowCitySearch(false)
-                    }
+                    },
+                    onShowSettings = viewModel::setShowSettings,
+                    onUpdateRefreshInterval = viewModel::updateRefreshInterval,
+                    onResetAppData = viewModel::resetAppData,
+                    onDismissWelcome = viewModel::dismissWelcome
                 )
             }
         }

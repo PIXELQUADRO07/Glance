@@ -31,8 +31,10 @@ import com.damiano.glance.domain.HourlyWeather
 import com.damiano.glance.domain.LocationInfo
 import com.damiano.glance.domain.MoonCalculator
 import com.damiano.glance.domain.WeatherData
-import com.damiano.glance.ui.components.WeatherBackground
+import com.damiano.glance.ui.components.NatureLandscapeBackground
+import com.damiano.glance.ui.components.SettingsDialog
 import com.damiano.glance.ui.components.WeatherIcon
+import com.damiano.glance.ui.components.WelcomeDialog
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -42,10 +44,17 @@ fun WeatherScreen(
     onRefresh: () -> Unit,
     onShowCitySearch: (Boolean) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
-    onSelectCity: (com.damiano.glance.domain.CityResult) -> Unit
+    onSelectCity: (com.damiano.glance.domain.CityResult) -> Unit,
+    onShowSettings: (Boolean) -> Unit,
+    onUpdateRefreshInterval: (Long) -> Unit,
+    onResetAppData: () -> Unit,
+    onDismissWelcome: () -> Unit
 ) {
-    BackHandler(enabled = state is WeatherUiState.Success && state.showCitySearch) {
-        onShowCitySearch(false)
+    BackHandler(enabled = state is WeatherUiState.Success && (state.showCitySearch || state.showSettings)) {
+        if (state is WeatherUiState.Success) {
+            if (state.showCitySearch) onShowCitySearch(false)
+            if (state.showSettings) onShowSettings(false)
+        }
     }
 
     when (state) {
@@ -77,21 +86,40 @@ fun WeatherScreen(
             }
         }
         is WeatherUiState.Success -> {
-            if (state.showCitySearch) {
-                CitySearchScreen(
-                    searchResults = state.searchResults,
-                    isSearching = state.isSearching,
-                    onDismiss = { onShowCitySearch(false) },
-                    onQueryChanged = onSearchQueryChanged,
-                    onSelectCity = onSelectCity
+            Box(modifier = Modifier.fillMaxSize()) {
+                NatureLandscapeBackground(
+                    weatherCode = state.weather.current.weatherCode,
+                    isDay = state.weather.current.isDay
                 )
-            } else {
-                MainWeatherContent(
-                    weather = state.weather,
-                    location = state.location,
-                    onRefresh = onRefresh,
-                    onChangeCityClick = { onShowCitySearch(true) }
-                )
+
+                if (state.showWelcome) {
+                    WelcomeDialog(onDismiss = onDismissWelcome)
+                } else if (state.showCitySearch) {
+                    CitySearchScreen(
+                        searchResults = state.searchResults,
+                        isSearching = state.isSearching,
+                        onDismiss = { onShowCitySearch(false) },
+                        onQueryChanged = onSearchQueryChanged,
+                        onSelectCity = onSelectCity
+                    )
+                } else if (state.showSettings) {
+                    SettingsDialog(
+                        currentRefreshInterval = state.refreshInterval,
+                        onRefreshIntervalChanged = { minutes ->
+                            onUpdateRefreshInterval(minutes)
+                        },
+                        onResetData = onResetAppData,
+                        onDismiss = { onShowSettings(false) }
+                    )
+                } else {
+                    MainWeatherContent(
+                        weather = state.weather,
+                        location = state.location,
+                        onRefresh = onRefresh,
+                        onChangeCityClick = { onShowCitySearch(true) },
+                        onSettingsClick = { onShowSettings(true) }
+                    )
+                }
             }
         }
     }
@@ -102,13 +130,12 @@ fun MainWeatherContent(
     weather: WeatherData,
     location: LocationInfo,
     onRefresh: () -> Unit,
-    onChangeCityClick: () -> Unit
+    onChangeCityClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val current = weather.current
     val moon = MoonCalculator.calculateMoon()
     val windDirText = getWindDirectionText(current.windDirection)
-
-    val backgroundBrush = WeatherBackground.getGradient(current.weatherCode, current.isDay)
 
     val updateTimeStr = remember(weather.lastUpdated) {
         try {
@@ -131,7 +158,6 @@ fun MainWeatherContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundBrush)
             .padding(horizontal = 48.dp, vertical = 28.dp)
     ) {
         LazyColumn(
@@ -165,6 +191,7 @@ fun MainWeatherContent(
                             onClick = onChangeCityClick,
                             modifier = Modifier.focusRequester(focusRequester)
                         )
+                        TvButton(text = "Impostazioni", onClick = onSettingsClick)
                         TvButton(text = "Aggiorna", onClick = onRefresh)
                     }
                 }

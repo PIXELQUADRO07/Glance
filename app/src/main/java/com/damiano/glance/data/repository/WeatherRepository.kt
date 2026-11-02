@@ -17,6 +17,20 @@ class WeatherRepository(context: Context) {
     private val json = Json { ignoreUnknownKeys = true }
 
     val locationFlow: Flow<LocationInfo> = dataStore.locationFlow
+    val refreshIntervalFlow: Flow<Long> = dataStore.refreshIntervalFlow
+    val firstLaunchFlow: Flow<Boolean> = dataStore.firstLaunchFlow
+
+    suspend fun saveRefreshInterval(minutes: Long) {
+        dataStore.saveRefreshInterval(minutes)
+    }
+
+    suspend fun saveFirstLaunch(isFirstLaunch: Boolean) {
+        dataStore.saveFirstLaunch(isFirstLaunch)
+    }
+
+    suspend fun clearAllData() {
+        dataStore.clearAllData()
+    }
 
     suspend fun getOrInitLocation(): LocationInfo {
         val currentLoc = dataStore.locationFlow.first()

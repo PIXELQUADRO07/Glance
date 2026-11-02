@@ -3,6 +3,7 @@ package com.damiano.glance.data.local
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -26,6 +27,8 @@ class DataStoreManager(private val context: Context) {
         private val CACHED_WEATHER_KEY = stringPreferencesKey("cached_weather_json")
         private val CACHED_LAT_KEY = doublePreferencesKey("cached_lat")
         private val CACHED_LON_KEY = doublePreferencesKey("cached_lon")
+        private val REFRESH_INTERVAL_KEY = longPreferencesKey("refresh_interval")
+        private val FIRST_LAUNCH_KEY = booleanPreferencesKey("first_launch")
     }
 
     val locationFlow: Flow<LocationInfo> = context.dataStore.data.map { prefs ->
@@ -37,6 +40,14 @@ class DataStoreManager(private val context: Context) {
             country = prefs[COUNTRY_KEY] ?: "Italia",
             origin = prefs[ORIGIN_KEY] ?: ""
         )
+    }
+
+    val refreshIntervalFlow: Flow<Long> = context.dataStore.data.map { prefs ->
+        prefs[REFRESH_INTERVAL_KEY] ?: 30L
+    }
+
+    val firstLaunchFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[FIRST_LAUNCH_KEY] ?: true
     }
 
     val cachedWeatherFlow: Flow<String?> = context.dataStore.data.map { prefs ->
@@ -68,6 +79,24 @@ class DataStoreManager(private val context: Context) {
             prefs[CACHED_LON_KEY] = lon
             prefs[CACHED_WEATHER_KEY] = json
             prefs[LAST_UPDATE_KEY] = System.currentTimeMillis()
+        }
+    }
+
+    suspend fun saveRefreshInterval(minutes: Long) {
+        context.dataStore.edit { prefs ->
+            prefs[REFRESH_INTERVAL_KEY] = minutes
+        }
+    }
+
+    suspend fun saveFirstLaunch(isFirstLaunch: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[FIRST_LAUNCH_KEY] = isFirstLaunch
+        }
+    }
+
+    suspend fun clearAllData() {
+        context.dataStore.edit { prefs ->
+            prefs.clear()
         }
     }
 }
