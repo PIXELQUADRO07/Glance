@@ -1,4 +1,5 @@
 # Built application files
+*.zip
 *.apk
 *.ap_
 *.aab
@@ -35,3 +36,6 @@ local.properties
 # External native build
 .cxx/
 .externalNativeBuild/
+
+#tizen
+/tizen/
